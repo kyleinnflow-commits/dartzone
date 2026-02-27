@@ -75,6 +75,7 @@ export type GameAction =
   | { type: "END_TURN" }
   | { type: "HIT_CLOCK" }
   | { type: "MISS_CLOCK" }
+  | { type: "CLOCK_ADVANCE_TO"; highestReached: number }
   | { type: "UNDO" }
   | { type: "RESET_GAME" }
   | { type: "REMATCH" };

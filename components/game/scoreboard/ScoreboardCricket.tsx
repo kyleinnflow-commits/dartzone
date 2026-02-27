@@ -60,7 +60,7 @@ export function ScoreboardCricket() {
       <table className="w-full border-collapse min-w-0">
         <thead>
           <tr>
-            <th className="w-10 sm:w-12 text-left text-zinc-400 font-medium text-sm py-2 pr-1">
+            <th className="w-14 sm:w-12 md:w-10 text-left text-zinc-400 font-bold text-xl sm:text-2xl md:text-3xl py-2 pr-1">
               #
             </th>
             {players.map((p, i) => (
@@ -81,7 +81,7 @@ export function ScoreboardCricket() {
               key={num}
               className={rowClosed[num] ? "opacity-70" : ""}
             >
-              <td className="border border-zinc-700 bg-zinc-800/50 text-zinc-300 font-bold text-sm py-1 px-2">
+              <td className="border border-zinc-700 bg-zinc-800/50 text-zinc-300 font-bold text-xl sm:text-2xl md:text-3xl py-1 px-1 sm:px-2">
                 {num === 25 ? "Bull" : num}
               </td>
               {players.map((p, i) => {
@@ -104,7 +104,7 @@ export function ScoreboardCricket() {
         {pointsMode && (
           <tfoot>
             <tr>
-              <td className="border border-zinc-700 bg-zinc-800 font-semibold text-zinc-300 py-2 px-2">
+              <td className="border border-zinc-700 bg-zinc-800 font-bold text-xl sm:text-2xl md:text-3xl text-zinc-300 py-2 px-1 sm:px-2">
                 Pts
               </td>
               {players.map((p, i) => {

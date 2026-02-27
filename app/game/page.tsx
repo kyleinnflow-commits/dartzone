@@ -12,6 +12,7 @@ import { ScoreboardClock } from "@/components/game/scoreboard/ScoreboardClock";
 import { CheckoutSuggest } from "@/components/game/CheckoutSuggest";
 import { NumberPad } from "@/components/game/input/NumberPad";
 import { QuickScores } from "@/components/game/input/QuickScores";
+import { ThreeDartInput } from "@/components/game/input/ThreeDartInput";
 import { CricketInput } from "@/components/game/input/CricketInput";
 import { ClockInput } from "@/components/game/input/ClockInput";
 import { STARTING_SCORE_501, STARTING_SCORE_301 } from "@/lib/constants";
@@ -22,11 +23,13 @@ export default function GamePage() {
   const router = useRouter();
   const { state, dispatch } = useGame();
   const [showBust, setShowBust] = useState(false);
-  const [inputMode, setInputMode] = useState<"quick" | "keypad">("quick");
+  const [inputMode, setInputMode] = useState<"quick" | "keypad" | "darts">("darts");
   const lastBustIndexRef = useRef(-1);
 
   const is01 = state.mode === "five01" || state.mode === "three01";
   const maxScore = state.mode === "three01" ? STARTING_SCORE_301 : STARTING_SCORE_501;
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  const remaining01 = currentPlayer ? (state.scores501[currentPlayer.name] ?? maxScore) : maxScore;
 
   useEffect(() => {
     if (state.gameStatus !== "active" || state.players.length === 0) {
@@ -81,13 +84,20 @@ export default function GamePage() {
       </main>
       <footer className="flex-shrink-0 p-4 pt-2 bg-zinc-950 border-t border-zinc-800">
         {is01 && (
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-end items-center min-h-[52px] mb-2">
             <UndoButton />
           </div>
         )}
         {state.mode === "five01" || state.mode === "three01" ? (
           <>
             <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setInputMode("darts")}
+                className={`flex-1 min-h-[44px] rounded-lg font-medium ${inputMode === "darts" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50" : "bg-zinc-800 text-zinc-400"}`}
+              >
+                3 Darts
+              </button>
               <button
                 type="button"
                 onClick={() => setInputMode("quick")}
@@ -103,7 +113,13 @@ export default function GamePage() {
                 Keypad
               </button>
             </div>
-            {inputMode === "quick" ? (
+            {inputMode === "darts" ? (
+              <ThreeDartInput
+                onScore={handleScore01}
+                remaining={remaining01}
+                maxScore={maxScore}
+              />
+            ) : inputMode === "quick" ? (
               <QuickScores onScore={handleScore01} maxScore={maxScore} />
             ) : (
               <NumberPad onScore={handleScore01} maxScore={maxScore} />
@@ -111,14 +127,14 @@ export default function GamePage() {
           </>
         ) : state.mode === "cricket" ? (
           <>
-            <div className="flex justify-end mb-2">
+            <div className="flex justify-end items-center min-h-[52px] mb-2">
               <UndoButton />
             </div>
             <CricketInput />
           </>
         ) : (
           <>
-            <div className="flex justify-end mb-2">
+            <div className="flex justify-end items-center min-h-[52px] mb-2">
               <UndoButton />
             </div>
             <ClockInput />

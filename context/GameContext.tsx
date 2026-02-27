@@ -302,6 +302,40 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case "CLOCK_ADVANCE_TO": {
+      if (state.gameStatus !== "active" || n === 0) return state;
+      const idx = state.currentPlayerIndex;
+      const player = state.players[idx];
+      const currentTarget = state.clockState[player.name] ?? 1;
+      const { highestReached } = action;
+      if (highestReached < currentTarget || highestReached > 21) return state;
+      const entry: TurnEntry = {
+        playerName: player.name,
+        round: state.round,
+        previousPlayerIndex: idx,
+        previousRound: state.round,
+        targetNumber: currentTarget,
+        hit: true,
+      };
+      if (highestReached === 21) {
+        return {
+          ...state,
+          turnHistory: [...state.turnHistory, entry],
+          winner: player.name,
+          gameStatus: "finished",
+        };
+      }
+      const nextIndex = (idx + 1) % n;
+      const nextRound = nextIndex === 0 ? state.round + 1 : state.round;
+      return {
+        ...state,
+        clockState: { ...state.clockState, [player.name]: highestReached + 1 },
+        turnHistory: [...state.turnHistory, entry],
+        currentPlayerIndex: nextIndex,
+        round: nextRound,
+      };
+    }
+
     case "UNDO": {
       const history = state.turnHistory;
       if (history.length === 0) return state;

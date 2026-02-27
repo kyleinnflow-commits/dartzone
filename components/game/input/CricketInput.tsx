@@ -42,8 +42,14 @@ export function CricketInput() {
     return list.filter((x) => x.count > 0).reverse();
   }, [state.turnHistory, currentPlayer.name, state.round]);
 
+  const marksThisTurn = useMemo(
+    () => turnTally.reduce((sum, { count }) => sum + count, 0),
+    [turnTally]
+  );
+  const canAddMore = marksThisTurn < 3;
+
   const handleMark = (num: number) => {
-    if (rowClosed[num]) return;
+    if (rowClosed[num] || !canAddMore) return;
     dispatch({ type: "MARK_CRICKET", number: num, count: 1 });
   };
 
@@ -53,33 +59,39 @@ export function CricketInput() {
 
   return (
     <div className="space-y-3">
-      {turnTally.length > 0 && (
-        <div className="text-sm text-zinc-400 flex flex-wrap gap-x-3 gap-y-1">
-          This turn:{" "}
-          {turnTally.map(({ num, count }) => (
-            <span key={num} className="font-medium text-zinc-300">
-              {num === 25 ? "Bull" : num} ×{count}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="text-sm text-zinc-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {turnTally.length > 0 && (
+          <>
+            This turn:{" "}
+            {turnTally.map(({ num, count }) => (
+              <span key={num} className="font-medium text-zinc-300">
+                {num === 25 ? "Bull" : num} ×{count}
+              </span>
+            ))}
+          </>
+        )}
+        <span className="font-medium">
+          {marksThisTurn}/3 darts
+        </span>
+      </div>
       <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
         {CRICKET_NUMBERS.map((num) => {
           const closed = rowClosed[num];
+          const disabled = closed || !canAddMore;
           const count = marks[num] ?? 0;
           return (
             <motion.button
               key={num}
               type="button"
-              whileTap={closed ? undefined : { scale: 0.95 }}
+              whileTap={disabled ? undefined : { scale: 0.95 }}
               onClick={() => handleMark(num)}
-              disabled={closed}
+              disabled={disabled}
               className={`
                 min-h-[48px] rounded-xl font-bold text-lg
                 flex flex-col items-center justify-center gap-0.5
                 transition-colors
                 ${
-                  closed
+                  disabled
                     ? "bg-zinc-800/50 text-zinc-500 cursor-not-allowed"
                     : "bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white"
                 }

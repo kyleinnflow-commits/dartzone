@@ -7,25 +7,24 @@ import { getCheckout } from "@/lib/checkouts";
 
 export function CheckoutSuggest() {
   const { state } = useGame();
-  if (state.mode !== "five01" && state.mode !== "three01") return null;
-
-  const currentPlayer = state.players[state.currentPlayerIndex];
-  if (!currentPlayer) return null;
-
-  const remaining = state.scores501[currentPlayer.name] ?? 0;
-  if (remaining > 170 || remaining <= 0) return null;
-
-  const path = getCheckout(remaining);
-  if (!path || path.length === 0) return null;
 
   const segments = useMemo(() => {
+    if (state.mode !== "five01" && state.mode !== "three01") return null;
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (!currentPlayer) return null;
+    const remaining = state.scores501[currentPlayer.name] ?? 0;
+    if (remaining > 170 || remaining <= 0) return null;
+    const path = getCheckout(remaining);
+    if (!path || path.length === 0) return null;
     return path.map((dart) => {
       if (dart.startsWith("T")) return { text: dart, type: "treble" as const };
       if (dart.startsWith("D")) return { text: dart, type: "double" as const };
       if (dart === "SB" || dart === "DB") return { text: dart, type: "bull" as const };
       return { text: dart, type: "single" as const };
     });
-  }, [path]);
+  }, [state.mode, state.players, state.currentPlayerIndex, state.scores501]);
+
+  if (segments === null || segments.length === 0) return null;
 
   return (
     <motion.div

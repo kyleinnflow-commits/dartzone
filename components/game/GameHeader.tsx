@@ -31,24 +31,9 @@ export function GameHeader() {
       <button
         type="button"
         onClick={() => setShowQuitConfirm(true)}
-        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-        aria-label="Quit game"
+        className="min-h-[44px] px-4 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-600 transition-colors font-medium text-sm sm:text-base"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 3v18" />
-          <path d="M8 8l4-4 4 4" />
-          <path d="M8 20l4 4 4-4" />
-        </svg>
+        Quit Game
       </button>
       {showQuitConfirm && (
         <div

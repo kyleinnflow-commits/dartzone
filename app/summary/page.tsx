@@ -23,7 +23,7 @@ export default function SummaryPage() {
 
   const handleRematch = () => {
     dispatch({ type: "REMATCH" });
-    router.push("/game");
+    router.replace("/game");
   };
 
   const handleNewGame = () => {

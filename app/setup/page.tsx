@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/context/GameContext";
 import { PlayerInput } from "@/components/setup/PlayerInput";
+import { loadSavedPlayers, savePlayers } from "@/lib/storage";
 import type { GameMode } from "@/types";
 
 const MODE_LABELS: Record<GameMode, string> = {
@@ -23,6 +24,15 @@ export default function SetupPage() {
   const { state, dispatch } = useGame();
   const [names, setNames] = useState<string[]>(["", ""]);
   const [touched, setTouched] = useState(false);
+
+  useEffect(() => {
+    const saved = loadSavedPlayers();
+    if (saved.length >= MIN_PLAYERS) {
+      setNames([...saved].slice(0, MAX_PLAYERS));
+    } else if (saved.length === 1) {
+      setNames([saved[0], ""]);
+    }
+  }, []);
 
   const modeLabel = MODE_LABELS[state.mode] ?? "Game";
 
@@ -57,6 +67,7 @@ export default function SetupPage() {
     const playerNames = names
       .map((n) => n.trim())
       .filter(Boolean);
+    savePlayers(playerNames);
     dispatch({
       type: "SET_PLAYERS",
       players: playerNames.map((name) => ({ name, color: "" })),
