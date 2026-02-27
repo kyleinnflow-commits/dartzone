@@ -68,9 +68,9 @@ export default function GamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col min-h-[100dvh]">
+    <div className="min-h-screen min-h-[100dvh] bg-zinc-950 flex flex-col">
       <GameHeader />
-      <main className="flex-1 overflow-auto p-4 pb-2 min-h-0">
+      <main className="flex-grow-0 overflow-auto max-h-[55vh] p-4 pb-2 min-h-0">
         {state.mode === "five01" || state.mode === "three01" ? (
           <>
             <Scoreboard501 />
@@ -82,7 +82,7 @@ export default function GamePage() {
           <ScoreboardClock />
         )}
       </main>
-      <footer className="flex-shrink-0 p-4 pt-2 bg-zinc-950 border-t border-zinc-800">
+      <footer className="flex-shrink-0 mt-auto p-4 pt-2 bg-zinc-950 border-t border-zinc-800">
         {is01 && (
           <div className="flex justify-end items-center min-h-[52px] mb-2">
             <UndoButton />

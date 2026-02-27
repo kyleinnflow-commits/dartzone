@@ -82,8 +82,8 @@ export default function SetupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col p-4 sm:p-6">
-      <header className="flex items-center gap-4 mb-6">
+    <div className="min-h-screen min-h-[100dvh] bg-zinc-950 flex flex-col p-4 sm:p-6">
+      <header className="flex-shrink-0 flex items-center gap-4 mb-4">
         <Link
           href="/"
           onClick={(e) => {
@@ -114,7 +114,7 @@ export default function SetupPage() {
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800"
+          className="flex-shrink-0 mb-4 flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800"
         >
           <span className="text-base font-medium text-zinc-300">
             Points Mode
@@ -144,7 +144,7 @@ export default function SetupPage() {
         </motion.div>
       )}
 
-      <div className="space-y-3 flex-1">
+      <div className="flex-1 min-h-0 overflow-auto space-y-3">
         <h2 className="text-lg font-semibold text-zinc-300">Players</h2>
         <AnimatePresence mode="popLayout">
           {names.map((name, i) => (
@@ -172,12 +172,12 @@ export default function SetupPage() {
       </div>
 
       {showValidation && (
-        <p className="text-sm text-amber-400 mt-2">
+        <p className="flex-shrink-0 text-sm text-amber-400 mt-2">
           Add at least 2 player names to start.
         </p>
       )}
 
-      <div className="mt-6 pt-4">
+      <div className="flex-shrink-0 mt-4 pt-4">
         <button
           type="button"
           onClick={handleStartGame}
