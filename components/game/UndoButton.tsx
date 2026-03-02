@@ -1,16 +1,32 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useGame } from "@/context/GameContext";
 
-export function UndoButton() {
+interface UndoButtonProps {
+  /**
+   * Optional callback run before dispatching global UNDO.
+   * If it returns true, the global UNDO dispatch is skipped.
+   */
+  onBeforeUndo?: () => boolean;
+}
+
+export function UndoButton({ onBeforeUndo }: UndoButtonProps) {
   const { state, dispatch } = useGame();
-  const canUndo = state.turnHistory.length > 0;
+  const hasHistory = state.turnHistory.length > 0;
+  const canUndo = hasHistory || !!onBeforeUndo;
+
+  const handleClick = () => {
+    if (!canUndo) return;
+    const handledLocally = onBeforeUndo?.() ?? false;
+    if (!handledLocally && hasHistory) {
+      dispatch({ type: "UNDO" });
+    }
+  };
 
   return (
     <button
       type="button"
-      onClick={() => dispatch({ type: "UNDO" })}
+      onClick={handleClick}
       disabled={!canUndo}
       className={`
         min-h-[38px] px-3 rounded-lg font-medium text-sm flex items-center gap-1.5
@@ -24,8 +40,8 @@ export function UndoButton() {
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
+        width="18"
+        height="18"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -33,9 +49,8 @@ export function UndoButton() {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M3 10h10a5 5 0 0 1 5 5v2" />
-        <path d="m3 10 4-4" />
-        <path d="M3 6v4" />
+        <path d="M7 5L3 9l4 4" />
+        <path d="M4 9h16" />
       </svg>
       Undo
     </button>

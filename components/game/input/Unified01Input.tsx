@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { motion } from "framer-motion";
 
 interface DartThrow {
@@ -9,34 +17,48 @@ interface DartThrow {
 }
 
 function dartValue(d: DartThrow): number {
+  if (d.number === 0) return 0;
   if (d.number === 25) return d.mult === 2 ? 50 : 25;
   return d.number * d.mult;
 }
 
 function dartLabel(d: DartThrow): string {
   if (d.number === 25) return d.mult === 2 ? "DB" : "SB";
+  if (d.number === 0) return "MISS";
   const pre = d.mult === 1 ? "S" : d.mult === 2 ? "D" : "T";
   return `${pre}${d.number}`;
 }
 
-const QUICK_BUTTONS = [180, 140, 100, 60, 50, 45, 40, 36, 26, 0] as const;
-const NUMBER_COLS = [
-  [1, 2, 3, 4, 5, 6, 7],
-  [8, 9, 10, 11, 12, 13, 14],
-  [15, 16, 17, 18, 19, 20, 25],
+type SegmentMode = "single" | "double" | "treble";
+
+const MODES: { id: SegmentMode; label: string }[] = [
+  { id: "single", label: "Single" },
+  { id: "double", label: "Double" },
+  { id: "treble", label: "Treble" },
 ];
-const DIGITS = [7, 8, 9, 4, 5, 6, 1, 2, 3, 0];
+
+const NUMBERS = Array.from({ length: 20 }, (_, i) => i + 1);
 
 interface Unified01InputProps {
   onScore: (score: number) => void;
   remaining: number;
   maxScore: number;
+  playerName?: string;
+  historyLength: number;
 }
 
-export function Unified01Input({ onScore, remaining, maxScore }: Unified01InputProps) {
+export interface Unified01InputHandle {
+  /**
+   * Undo the last local dart entry for this turn.
+   * Returns true if a dart was removed, false if there was nothing to undo.
+   */
+  undoLastDart: () => boolean;
+}
+
+export const Unified01Input = forwardRef<Unified01InputHandle, Unified01InputProps>(
+  function Unified01Input({ onScore, remaining, maxScore, playerName, historyLength }, ref) {
+  const [mode, setMode] = useState<SegmentMode>("single");
   const [darts, setDarts] = useState<(DartThrow | null)[]>([null, null, null]);
-  const [tempNumber, setTempNumber] = useState<number | null>(null);
-  const [keypadValue, setKeypadValue] = useState("");
 
   const currentDartIndex = useMemo(() => {
     const i = darts.findIndex((d) => d === null);
@@ -47,212 +69,233 @@ export function Unified01Input({ onScore, remaining, maxScore }: Unified01InputP
   const allDartsFilled = darts.every(Boolean);
   const wouldBust = remaining - dartTotal < 0 || remaining - dartTotal === 1;
   const isCheckout = remaining - dartTotal === 0;
+  const lastDart = darts[2];
   const lastDartIsDouble =
-    darts[2] != null &&
-    (darts[2].mult === 2 || (darts[2].number === 25 && darts[2].mult === 2));
+    lastDart != null &&
+    lastDart.number !== 0 &&
+    (lastDart.mult === 2 || (lastDart.number === 25 && lastDart.mult === 2));
   const validCheckout = isCheckout && lastDartIsDouble;
-  const canSubmitDarts =
-    allDartsFilled && (validCheckout || !isCheckout || wouldBust);
+  const canSubmit = allDartsFilled && (validCheckout || !isCheckout || wouldBust);
 
-  const keypadNum = parseInt(keypadValue, 10);
-  const canSubmitKeypad =
-    !Number.isNaN(keypadNum) && keypadNum >= 0 && keypadNum <= maxScore && keypadValue.length > 0;
+  const resetDarts = () => setDarts([null, null, null]);
 
-  const applyMult = useCallback(
-    (mult: 1 | 2 | 3) => {
-      if (tempNumber === null) return;
-      setDarts((prev) => {
-        const next = [...prev];
-        const idx = next.findIndex((d) => d === null);
-        if (idx === -1) return prev;
-        next[idx] = { number: tempNumber, mult };
-        return next;
-      });
-      setTempNumber(null);
-    },
-    [tempNumber]
+  // Track last submitted darts per player so we can restore them when Undo
+  // takes us back to a previous player's completed turn.
+  const lastSubmittedRef = useRef<Record<string, DartThrow[]>>({});
+  const prevHistoryLenRef = useRef<number | undefined>(undefined);
+  const prevPlayerRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!playerName) return;
+    const prevLen = prevHistoryLenRef.current;
+    const prevPlayer = prevPlayerRef.current;
+
+    if (prevLen === undefined) {
+      prevHistoryLenRef.current = historyLength;
+      prevPlayerRef.current = playerName;
+      return;
+    }
+
+    if (historyLength > prevLen) {
+      // Moved forward (submit) - if we changed players and this is a fresh turn,
+      // default back to Single.
+      if (playerName !== prevPlayer && darts.every((d) => d === null)) {
+        setMode("single");
+      }
+    } else if (historyLength < prevLen) {
+      // Undo - if we moved back to a previous player, restore their last submitted darts
+      // if we have them stored.
+      if (playerName !== prevPlayer) {
+        const stored = lastSubmittedRef.current[playerName];
+        if (stored && stored.length) {
+          setDarts(stored);
+        }
+      }
+    }
+
+    prevHistoryLenRef.current = historyLength;
+    prevPlayerRef.current = playerName;
+  }, [playerName, historyLength, darts]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      undoLastDart: () => {
+        const idx = [...darts].reverse().findIndex((d) => d !== null);
+        if (idx === -1) return false;
+        const realIndex = 2 - idx;
+        setDarts((prev) => {
+          const next = [...prev];
+          next[realIndex] = null;
+          return next;
+        });
+        return true;
+      },
+    }),
+    [darts],
   );
 
-  const submitDarts = useCallback(() => {
-    if (!canSubmitDarts) return;
+  const pushDart = useCallback((dart: DartThrow) => {
+    setDarts((prev) => {
+      const next = [...prev];
+      const idx = next.findIndex((d) => d === null);
+      if (idx === -1) return prev;
+      next[idx] = dart;
+      return next;
+    });
+  }, []);
+
+  const handleNumberClick = (n: number) => {
+    let number = n;
+    let mult: 1 | 2 | 3 = 1;
+
+    if (mode === "single") mult = 1;
+    else if (mode === "double") mult = 2;
+    else if (mode === "treble") mult = 3;
+
+    pushDart({ number, mult });
+  };
+
+  const handleBullSingle = () => {
+    pushDart({ number: 25, mult: 1 });
+  };
+
+  const handleBullDouble = () => {
+    pushDart({ number: 25, mult: 2 });
+  };
+
+  const handleMiss = () => {
+    pushDart({ number: 0, mult: 0 });
+  };
+
+  const submit = () => {
+    if (!canSubmit) return;
+    if (playerName) {
+      lastSubmittedRef.current[playerName] = (darts.filter(
+        (d): d is DartThrow => d !== null,
+      ) as DartThrow[]);
+    }
     onScore(dartTotal);
-    setDarts([null, null, null]);
-    setTempNumber(null);
-  }, [canSubmitDarts, dartTotal, onScore]);
+    resetDarts();
+  };
 
-  const submitKeypad = useCallback(() => {
-    if (!canSubmitKeypad) return;
-    onScore(keypadNum);
-    setKeypadValue("");
-  }, [canSubmitKeypad, keypadNum, onScore]);
-
-  const quickScore = useCallback(
-    (score: number) => {
-      if (score > maxScore || score > remaining) return;
-      onScore(score);
-    },
-    [maxScore, remaining, onScore]
-  );
+  const renderValueText = (n: number) => {
+    if (mode === "single") return null;
+    if (mode === "double") return n * 2;
+    if (mode === "treble") return n * 3;
+    return null;
+  };
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-      {/* Column 1: Quick scores */}
-      <div className="flex flex-col gap-1.5">
-        <div className="text-xs text-zinc-500 font-medium">Quick</div>
-        <div className="grid grid-cols-2 gap-1.5">
-          {QUICK_BUTTONS.filter((s) => s <= maxScore && s <= remaining).map((score) => (
-            <motion.button
-              key={score}
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => quickScore(score)}
-              className="min-h-[40px] rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-bold text-base"
-            >
-              {score}
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Column 2: 3 Darts with number + S/D/T (or S/D for Bull) */}
-      <div className="flex flex-col gap-1.5 min-w-0">
-        <div className="text-xs text-zinc-500 font-medium">Bad at Math? Use this</div>
-        <div className="flex gap-1">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-xs text-zinc-400">
+        <div className="flex gap-1 flex-1">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
               className={`
-                flex-1 min-h-[36px] rounded-lg text-sm font-mono font-bold border flex items-center justify-center truncate px-0.5
-                ${darts[i] ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300" : "bg-zinc-800 border-zinc-700 text-zinc-400"}
-                ${i === currentDartIndex && !darts[i] ? "ring-1 ring-cyan-500/60" : ""}
+                flex-1 min-h-[32px] rounded-lg border text-[10px] font-mono font-bold flex items-center justify-center
+                ${darts[i]
+                  ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-200"
+                  : i === currentDartIndex
+                    ? "bg-zinc-800 border-cyan-500/40 text-zinc-300"
+                    : "bg-zinc-900 border-zinc-700 text-zinc-500"}
               `}
             >
-              {darts[i] ? dartLabel(darts[i]) : i + 1}
+              {darts[i] ? dartLabel(darts[i]!) : `D${i + 1}`}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
-          {NUMBER_COLS.flat().map((n) => (
+        <div className="ml-2 text-right">
+          <div className="text-[11px] text-zinc-400">Total</div>
+          <div className="text-sm font-semibold text-white tabular-nums">
+            {dartTotal}
+            {allDartsFilled && wouldBust && <span className="ml-1 text-amber-400">BUST</span>}
+            {allDartsFilled && isCheckout && !lastDartIsDouble && (
+              <span className="ml-1 text-amber-400">Double out</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-1.5 text-xs">
+        {MODES.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => setMode(m.id)}
+            className={`
+              flex-1 min-h-[28px] rounded-full border px-2 font-medium
+              ${mode === m.id
+                ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-200"
+                : "bg-zinc-900 border-zinc-700 text-zinc-400"}
+            `}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-5 gap-1.5">
+        {NUMBERS.map((n) => {
+          const sub = renderValueText(n);
+          return (
             <motion.button
               key={n}
               type="button"
               whileTap={{ scale: 0.95 }}
-              onClick={() => setTempNumber((prev) => (prev === n ? null : n))}
-              className={`
-                min-h-[36px] rounded-lg text-sm font-semibold
-                ${tempNumber === n ? "bg-cyan-500/30 border border-cyan-500/60 text-cyan-200" : "bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700"}
-              `}
+              onClick={() => handleNumberClick(n)}
+              className="min-h-[40px] rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white flex flex-col items-center justify-center text-sm"
             >
-              {n === 25 ? "B" : n}
+              <span className="font-bold text-base leading-none">{n}</span>
+              {sub !== null && (
+                <span className="text-[10px] text-zinc-400 leading-none mt-0.5">{sub}</span>
+              )}
             </motion.button>
-          ))}
-        </div>
-        <div className="flex gap-1 items-center">
-          {tempNumber === 25 ? (
-            <>
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.95 }}
-                onClick={() => applyMult(1)}
-                className="flex-1 min-h-[36px] rounded-lg bg-zinc-700 hover:bg-cyan-500/20 border border-zinc-600 font-mono font-bold text-sm"
-              >
-                SB
-              </motion.button>
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.95 }}
-                onClick={() => applyMult(2)}
-                className="flex-1 min-h-[36px] rounded-lg bg-zinc-700 hover:bg-cyan-500/20 border border-zinc-600 font-mono font-bold text-sm"
-              >
-                DB
-              </motion.button>
-            </>
-          ) : (
-            [1, 2, 3].map((mult) => (
-              <motion.button
-                key={mult}
-                type="button"
-                whileTap={{ scale: 0.95 }}
-                onClick={() => applyMult(mult as 1 | 2 | 3)}
-                className="flex-1 min-h-[36px] rounded-lg bg-zinc-700 hover:bg-cyan-500/20 border border-zinc-600 font-mono font-bold text-sm"
-              >
-                {mult === 1 ? "S" : mult === 2 ? "D" : "T"}
-              </motion.button>
-            ))
-          )}
-          <span className="text-sm text-zinc-400 font-semibold ml-1 tabular-nums w-9">
-            {dartTotal}
-          </span>
-        </div>
-        {(allDartsFilled && wouldBust) && (
-          <span className="text-xs text-amber-400">BUST</span>
-        )}
-        {allDartsFilled && isCheckout && !lastDartIsDouble && (
-          <span className="text-xs text-amber-400">Double out</span>
-        )}
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5 mt-1.5">
         <motion.button
           type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={submitDarts}
-          disabled={!canSubmitDarts}
-          className={`
-            min-h-[40px] rounded-xl font-bold text-base mt-0.5
-            ${canSubmitDarts ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"}
-          `}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleBullDouble}
+          className="min-h-[40px] rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold flex flex-col items-center justify-center"
         >
-          Submit
+          <span className="text-sm font-bold">Bull</span>
+          <span className="text-[10px] text-zinc-400">50</span>
+        </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={handleBullSingle}
+          className="min-h-[40px] rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-semibold flex flex-col items-center justify-center"
+        >
+          <span className="text-sm font-bold">Outer</span>
+          <span className="text-[10px] text-zinc-400">25</span>
+        </motion.button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={handleMiss}
+          className="min-h-[40px] rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-semibold flex items-center justify-center"
+        >
+          MISS
         </motion.button>
       </div>
 
-      {/* Column 3: Keypad */}
-      <div className="flex flex-col gap-1.5 min-w-0">
-        <div className="text-xs text-zinc-500 font-medium">Keypad</div>
-        <div className="flex items-center gap-1.5">
-          <div className="flex-1 min-h-[36px] px-3 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-end text-xl font-bold tabular-nums text-white">
-            {keypadValue || "0"}
-          </div>
-          <button
-            type="button"
-            onClick={() => setKeypadValue((v) => v.slice(0, -1))}
-            className="min-h-[36px] min-w-[36px] rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 flex items-center justify-center text-zinc-400"
-            aria-label="Backspace"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 12H6" /><path d="M9 17l-5-5 5-5" />
-            </svg>
-          </button>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {DIGITS.map((d) => (
-            <motion.button
-              key={d}
-              type="button"
-              whileTap={{ scale: 0.95 }}
-              onClick={() =>
-                setKeypadValue((v) => {
-                  const next = v === "0" ? String(d) : v + String(d);
-                  return parseInt(next, 10) <= maxScore && next.length <= 3 ? next : v;
-                })
-              }
-              className="min-h-[36px] rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-semibold text-base"
-            >
-              {d}
-            </motion.button>
-          ))}
-        </div>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={submitKeypad}
-          disabled={!canSubmitKeypad}
-          className={`
-            min-h-[40px] rounded-xl font-bold text-base
-            ${canSubmitKeypad ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"}
-          `}
-        >
-          Submit
-        </motion.button>
-      </div>
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        onClick={submit}
+        disabled={!canSubmit}
+        className={`
+          w-full min-h-[44px] rounded-xl font-bold text-lg
+          ${canSubmit ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"}
+        `}
+      >
+        Submit
+      </motion.button>
     </div>
   );
-}
+});

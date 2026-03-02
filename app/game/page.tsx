@@ -10,7 +10,7 @@ import { Scoreboard501 } from "@/components/game/scoreboard/Scoreboard501";
 import { ScoreboardCricket } from "@/components/game/scoreboard/ScoreboardCricket";
 import { ScoreboardClock } from "@/components/game/scoreboard/ScoreboardClock";
 import { CheckoutSuggest } from "@/components/game/CheckoutSuggest";
-import { Unified01Input } from "@/components/game/input/Unified01Input";
+import { Unified01Input, Unified01InputHandle } from "@/components/game/input/Unified01Input";
 import { CricketInput } from "@/components/game/input/CricketInput";
 import { ClockInput } from "@/components/game/input/ClockInput";
 import { STARTING_SCORE_501, STARTING_SCORE_301 } from "@/lib/constants";
@@ -22,6 +22,7 @@ export default function GamePage() {
   const { state, dispatch } = useGame();
   const [showBust, setShowBust] = useState(false);
   const lastBustIndexRef = useRef(-1);
+  const unifiedRef = useRef<Unified01InputHandle | null>(null);
 
   const is01 = state.mode === "five01" || state.mode === "three01";
   const maxScore = state.mode === "three01" ? STARTING_SCORE_301 : STARTING_SCORE_501;
@@ -82,15 +83,19 @@ export default function GamePage() {
       <footer className="p-4 pt-2 bg-zinc-950 border-t border-zinc-800">
         {is01 && (
           <div className="flex justify-end items-center min-h-[52px] mb-2">
-            <UndoButton />
+            <UndoButton
+              onBeforeUndo={() => unifiedRef.current?.undoLastDart() ?? false}
+            />
           </div>
         )}
         {state.mode === "five01" || state.mode === "three01" ? (
           <Unified01Input
-            key={state.turnHistory.length}
+            ref={unifiedRef}
             onScore={handleScore01}
             remaining={remaining01}
             maxScore={maxScore}
+            playerName={currentPlayer?.name}
+            historyLength={state.turnHistory.length}
           />
         ) : state.mode === "cricket" ? (
           <CricketInput />
