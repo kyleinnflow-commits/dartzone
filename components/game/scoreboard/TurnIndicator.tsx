@@ -21,16 +21,20 @@ export function TurnIndicator({ round, currentPlayer }: TurnIndicatorProps) {
   const textClass = COLOR_TEXT[currentPlayer.color] ?? "text-cyan-400";
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-      <span className="text-zinc-400 font-medium">Round {round}</span>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+      <span className="text-zinc-400 font-medium text-sm">Round {round}</span>
       <motion.span
         key={currentPlayer.name}
-        initial={{ opacity: 0.7, x: -8 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.25 }}
-        className={`font-bold text-lg sm:text-xl ${textClass} flex items-center gap-2`}
+        initial={{ opacity: 0.5, x: -12, scale: 0.97 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className={`font-bold text-base sm:text-lg ${textClass} flex items-center gap-1.5`}
       >
-        <span
+        <motion.span
+          key={currentPlayer.name}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.25 }}
           className="w-2 h-2 rounded-full bg-current animate-pulse"
           aria-hidden
         />

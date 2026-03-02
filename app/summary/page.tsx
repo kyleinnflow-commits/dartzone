@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useGame } from "@/context/GameContext";
@@ -11,8 +11,10 @@ import { computeStats } from "@/lib/gameStats";
 export default function SummaryPage() {
   const router = useRouter();
   const { state, dispatch } = useGame();
+  const rematchingRef = useRef(false);
 
   useEffect(() => {
+    if (rematchingRef.current) return;
     if (state.gameStatus !== "finished" || !state.winner) {
       router.replace("/");
     }
@@ -21,14 +23,17 @@ export default function SummaryPage() {
   const winner = state.players.find((p) => p.name === state.winner);
   const stats = useMemo(() => computeStats(state), [state]);
 
+  // Same game mode and players; reset scores and start a new game
   const handleRematch = () => {
+    rematchingRef.current = true;
     dispatch({ type: "REMATCH" });
     router.replace("/game");
   };
 
+  // Full reset and go to home so user can select a different game mode
   const handleNewGame = () => {
     dispatch({ type: "RESET_GAME" });
-    router.push("/");
+    router.replace("/");
   };
 
   if (state.gameStatus !== "finished" || !state.winner || !winner) {

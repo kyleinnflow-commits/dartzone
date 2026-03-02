@@ -13,7 +13,7 @@ export function UndoButton() {
       onClick={() => dispatch({ type: "UNDO" })}
       disabled={!canUndo}
       className={`
-        min-h-[44px] px-4 rounded-lg font-medium flex items-center gap-2
+        min-h-[38px] px-3 rounded-lg font-medium text-sm flex items-center gap-1.5
         transition-colors
         ${
           canUndo
@@ -24,8 +24,8 @@ export function UndoButton() {
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
+        width="16"
+        height="16"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

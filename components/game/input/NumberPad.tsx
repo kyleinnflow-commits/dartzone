@@ -57,10 +57,11 @@ export function NumberPad({ onScore, maxScore }: NumberPadProps) {
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path d="M7 21h10" />
-            <path d="M12 3v4" />
-            <path d="M4 7l4-4 8 8 4 4-4 4-8-8-4 4z" />
+            <path d="M22 12H6" />
+            <path d="M9 17l-5-5 5-5" />
           </svg>
         </button>
       </div>

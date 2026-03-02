@@ -34,7 +34,7 @@ export function ScoreboardClock() {
                 ${isActive ? "border-cyan-500 bg-zinc-900 shadow-lg" : "border-zinc-800 bg-zinc-900/70 opacity-85"}
               `}
             >
-              <div className={`font-bold text-lg ${isActive ? textClass : "text-zinc-400"}`}>
+              <div className={`font-bold text-xl sm:text-2xl ${isActive ? textClass : "text-zinc-400"}`}>
                 {player.name}
               </div>
               <div className="mt-2 text-3xl sm:text-4xl font-extrabold text-white">

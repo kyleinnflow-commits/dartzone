@@ -187,9 +187,19 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         },
       };
 
+      const dartsThisTurnBefore = state.turnHistory.filter(
+        (e) =>
+          e.playerName === player.name &&
+          e.round === state.round &&
+          (e.cricketMarks?.length || e.miss)
+      ).length;
+      const isThirdDart = dartsThisTurnBefore === 2;
+
       const entry: TurnEntry = {
         playerName: player.name,
         round: state.round,
+        previousPlayerIndex: idx,
+        previousRound: state.round,
         cricketMarks: [{ number: num, count }],
         pointsScored: pointsToAdd,
       };
@@ -222,6 +232,49 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             gameStatus: "finished",
           };
         }
+      }
+      if (isThirdDart) {
+        const nextIndex = (idx + 1) % n;
+        const nextRound = nextIndex === 0 ? state.round + 1 : state.round;
+        return {
+          ...updatedState,
+          currentPlayerIndex: nextIndex,
+          round: nextRound,
+        };
+      }
+      return updatedState;
+    }
+
+    case "CRICKET_MISS": {
+      if (state.gameStatus !== "active" || n === 0) return state;
+      const idx = state.currentPlayerIndex;
+      const player = state.players[idx];
+      const dartsThisTurnBefore = state.turnHistory.filter(
+        (e) =>
+          e.playerName === player.name &&
+          e.round === state.round &&
+          (e.cricketMarks?.length || e.miss)
+      ).length;
+      const isThirdDart = dartsThisTurnBefore === 2;
+      const entry: TurnEntry = {
+        playerName: player.name,
+        round: state.round,
+        previousPlayerIndex: idx,
+        previousRound: state.round,
+        miss: true,
+      };
+      const updatedState = {
+        ...state,
+        turnHistory: [...state.turnHistory, entry],
+      };
+      if (isThirdDart) {
+        const nextIndex = (idx + 1) % n;
+        const nextRound = nextIndex === 0 ? state.round + 1 : state.round;
+        return {
+          ...updatedState,
+          currentPlayerIndex: nextIndex,
+          round: nextRound,
+        };
       }
       return updatedState;
     }
@@ -364,6 +417,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
+      if (last.miss) {
+        return {
+          ...state,
+          turnHistory: rest,
+          currentPlayerIndex: last.previousPlayerIndex ?? state.currentPlayerIndex,
+          round: last.previousRound ?? state.round,
+        };
+      }
+
       if (last.cricketMarks?.length) {
         const cstate = state.cricketState[last.playerName];
         if (!cstate) return state;
@@ -379,6 +441,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             [last.playerName]: { marks: newMarks, points: Math.max(0, newPoints) },
           },
           turnHistory: rest,
+          currentPlayerIndex: last.previousPlayerIndex ?? state.currentPlayerIndex,
+          round: last.previousRound ?? state.round,
           winner: state.winner,
           gameStatus: state.gameStatus,
         };

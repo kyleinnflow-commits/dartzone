@@ -10,9 +10,7 @@ import { Scoreboard501 } from "@/components/game/scoreboard/Scoreboard501";
 import { ScoreboardCricket } from "@/components/game/scoreboard/ScoreboardCricket";
 import { ScoreboardClock } from "@/components/game/scoreboard/ScoreboardClock";
 import { CheckoutSuggest } from "@/components/game/CheckoutSuggest";
-import { NumberPad } from "@/components/game/input/NumberPad";
-import { QuickScores } from "@/components/game/input/QuickScores";
-import { ThreeDartInput } from "@/components/game/input/ThreeDartInput";
+import { Unified01Input } from "@/components/game/input/Unified01Input";
 import { CricketInput } from "@/components/game/input/CricketInput";
 import { ClockInput } from "@/components/game/input/ClockInput";
 import { STARTING_SCORE_501, STARTING_SCORE_301 } from "@/lib/constants";
@@ -23,7 +21,6 @@ export default function GamePage() {
   const router = useRouter();
   const { state, dispatch } = useGame();
   const [showBust, setShowBust] = useState(false);
-  const [inputMode, setInputMode] = useState<"quick" | "keypad" | "darts">("darts");
   const lastBustIndexRef = useRef(-1);
 
   const is01 = state.mode === "five01" || state.mode === "three01";
@@ -89,56 +86,16 @@ export default function GamePage() {
           </div>
         )}
         {state.mode === "five01" || state.mode === "three01" ? (
-          <>
-            <div className="flex gap-2 mb-3">
-              <button
-                type="button"
-                onClick={() => setInputMode("darts")}
-                className={`flex-1 min-h-[44px] rounded-lg font-medium ${inputMode === "darts" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50" : "bg-zinc-800 text-zinc-400"}`}
-              >
-                3 Darts
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("quick")}
-                className={`flex-1 min-h-[44px] rounded-lg font-medium ${inputMode === "quick" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50" : "bg-zinc-800 text-zinc-400"}`}
-              >
-                Quick
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode("keypad")}
-                className={`flex-1 min-h-[44px] rounded-lg font-medium ${inputMode === "keypad" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50" : "bg-zinc-800 text-zinc-400"}`}
-              >
-                Keypad
-              </button>
-            </div>
-            {inputMode === "darts" ? (
-              <ThreeDartInput
-                onScore={handleScore01}
-                remaining={remaining01}
-                maxScore={maxScore}
-              />
-            ) : inputMode === "quick" ? (
-              <QuickScores onScore={handleScore01} maxScore={maxScore} />
-            ) : (
-              <NumberPad onScore={handleScore01} maxScore={maxScore} />
-            )}
-          </>
+          <Unified01Input
+            key={state.turnHistory.length}
+            onScore={handleScore01}
+            remaining={remaining01}
+            maxScore={maxScore}
+          />
         ) : state.mode === "cricket" ? (
-          <>
-            <div className="flex justify-end items-center min-h-[52px] mb-2">
-              <UndoButton />
-            </div>
-            <CricketInput />
-          </>
+          <CricketInput />
         ) : (
-          <>
-            <div className="flex justify-end items-center min-h-[52px] mb-2">
-              <UndoButton />
-            </div>
-            <ClockInput />
-          </>
+          <ClockInput />
         )}
       </footer>
       <BustOverlay show={showBust} />

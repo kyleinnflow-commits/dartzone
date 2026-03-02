@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useGame } from "@/context/GameContext";
+import { UndoButton } from "@/components/game/UndoButton";
 
 export function ClockInput() {
   const { state, dispatch } = useGame();
@@ -22,9 +23,12 @@ export function ClockInput() {
 
   return (
     <div className="space-y-4">
-      <p className="text-center text-zinc-400">
-        <span className="font-semibold text-white">{currentPlayer.name}</span> — 3 darts. Highest number reached?
-      </p>
+      <div className="flex items-end justify-between gap-3 min-h-[38px]">
+        <p className="text-zinc-400 text-sm">
+          <span className="font-semibold text-white">{currentPlayer.name}</span> — 3 darts. Highest number reached?
+        </p>
+        <UndoButton />
+      </div>
       <p className="text-center text-sm text-zinc-500">
         Currently on: <span className="font-bold text-cyan-400">{currentTarget === 21 ? "Bull" : currentTarget}</span>
       </p>

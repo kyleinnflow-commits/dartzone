@@ -57,9 +57,9 @@ export function Scoreboard501() {
   if (!currentPlayer) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <TurnIndicator round={state.round} currentPlayer={currentPlayer} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {players.map((player, idx) => {
           const remaining = state.scores501[player.name] ?? 0;
           const isActive = idx === currentIndex;
@@ -71,33 +71,39 @@ export function Scoreboard501() {
             <motion.div
               key={player.name}
               layout
+              initial={false}
+              animate={{
+                scale: isActive ? 1 : 0.99,
+                opacity: isActive ? 1 : 0.85,
+              }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className={`
-                rounded-xl p-4 border-2 transition-all
-                ${isActive ? `border-2 ${borderClass} bg-zinc-900 shadow-lg` : "border-zinc-800 bg-zinc-900/70 opacity-80"}
+                rounded-lg p-2.5 sm:p-3 border-2 transition-colors
+                ${isActive ? `border-2 ${borderClass} bg-zinc-900 shadow-lg` : "border-zinc-800 bg-zinc-900/70"}
               `}
             >
-              <div className={`font-bold text-lg ${isActive ? textClass : "text-zinc-400"}`}>
+              <div className={`font-bold text-base sm:text-lg ${isActive ? textClass : "text-zinc-400"}`}>
                 {player.name}
               </div>
-              <div className="mt-2 flex items-baseline gap-2 flex-wrap">
-                <span className="text-5xl sm:text-6xl font-extrabold tabular-nums text-white">
+              <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-3xl sm:text-4xl font-extrabold tabular-nums text-white">
                   <AnimatedScore value={remaining} />
                 </span>
                 {remaining <= 170 && remaining > 0 && (
-                  <span className="text-sm font-medium text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">
+                  <span className="text-xs font-medium text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
                     Checkout
                   </span>
                 )}
               </div>
               {lastScore !== undefined && (
-                <div className="text-sm text-zinc-500 mt-1 flex items-center gap-2">
-                  <span>Last round: {lastScore}</span>
+                <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1.5">
+                  <span>Last: {lastScore}</span>
                   {lastScore === 180 && (
                     <AnimatePresence>
                       <motion.span
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="text-yellow-300 font-bold text-base drop-shadow-[0_0_8px_rgba(253,224,71,0.6)]"
+                        className="text-yellow-300 font-bold text-sm drop-shadow-[0_0_8px_rgba(253,224,71,0.6)]"
                       >
                         180!
                       </motion.span>

@@ -18,6 +18,8 @@ export interface TurnEntry {
   targetNumber?: number;
   hit?: boolean;
   endTurn?: boolean;
+  /** True when the dart missed the board (scores 0), still counts as one dart */
+  miss?: boolean;
 }
 
 export interface CricketPlayerState {
@@ -72,6 +74,7 @@ export type GameAction =
   | { type: "START_GAME" }
   | { type: "SCORE_01"; score: number }
   | { type: "MARK_CRICKET"; number: number; count: number }
+  | { type: "CRICKET_MISS" }
   | { type: "END_TURN" }
   | { type: "HIT_CLOCK" }
   | { type: "MISS_CLOCK" }
